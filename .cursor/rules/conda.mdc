@@ -1,0 +1,13 @@
+---
+description: Environment management rules for Conda and Miniforge
+globs: ["**/*.py", "**/environment.yml"]
+alwaysApply: true
+---
+
+# Conda Environment Rules
+- **Environment Name**: AI-Compression
+- **Primary Tool**: Use `mamba` (via Miniforge) for all package management instead of `conda` or `pip` for faster resolution.
+- **Strict Isolation**: When running terminal commands, the agent MUST first activate the environment: `mamba activate AI-Compression`.
+- **Dependency Management**:
+  - Always check `environment.yml` before suggesting a new library.
+  - For AI/ML packages (PyTorch, CUDA), use the `pytorch` and `nvidia` channels.
