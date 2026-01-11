@@ -1,10 +1,19 @@
 import torch
 from torch.utils.data import IterableDataset, DataLoader
 from datasets import load_dataset
+from huggingface_hub import HfFolder
 from PIL import Image
 import numpy as np
 import io
 from typing import Optional, Tuple
+
+
+def _get_hf_token() -> Optional[str]:
+    """Get HuggingFace token from stored credentials."""
+    try:
+        return HfFolder.get_token()
+    except Exception:
+        return None
 
 
 class RandomCropDataset(IterableDataset):
@@ -29,17 +38,22 @@ class RandomCropDataset(IterableDataset):
         self.split = split
         self.crop_size = crop_size
         self.buffer_size = buffer_size
+        self._dataset = None  # Cache the dataset connection
         
     def _load_dataset(self):
-        """Load the streaming dataset."""
-        dataset = load_dataset(
-            "ILSVRC/imagenet-1k",
-            split=self.split,
-            streaming=True
-        )
-        # Shuffle the stream for better randomness
-        dataset = dataset.shuffle(buffer_size=self.buffer_size)
-        return dataset
+        """Load the streaming dataset (cached to avoid reconnecting each iteration)."""
+        if self._dataset is None:
+            # Get token for gated dataset access (ImageNet-1k requires authentication)
+            token = _get_hf_token()
+            self._dataset = load_dataset(
+                "ILSVRC/imagenet-1k",
+                split=self.split,
+                streaming=True,
+                trust_remote_code=True,
+                token=token,
+            )
+        # Return a shuffled view - this creates a new iterator but reuses the connection
+        return self._dataset.shuffle(buffer_size=self.buffer_size, seed=None)
     
     def _extract_image(self, sample) -> Optional[Image.Image]:
         """Extract PIL Image from sample dict."""
