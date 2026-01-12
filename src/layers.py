@@ -101,8 +101,9 @@ class ActNorm(nn.Module):
     def initialize(self, x):
         with torch.no_grad():
             # Compute per-channel mean and std
-            mean = x.mean(dim=[0, 2, 3], keepdim=True)
-            std = x.std(dim=[0, 2, 3], keepdim=True) + 1e-6
+            # Use float32 to avoid FP16 parameter assignment when inside autocast
+            mean = x.float().mean(dim=[0, 2, 3], keepdim=True)
+            std = x.float().std(dim=[0, 2, 3], keepdim=True) + 1e-6
             self.bias.data = -mean
             self.scale.data = 1.0 / std
             self.initialized = True
