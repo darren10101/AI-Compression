@@ -18,6 +18,9 @@ class CropDataStream(IterableDataset):
       streaming=True
     )
   def _process_image(self, image):
+    # Ensure RGB format (handles grayscale, palette, RGBA images)
+    if image.mode != 'RGB':
+      image = image.convert('RGB')
     img_tensor = F.to_tensor(image)
     c, h, w = img_tensor.shape
     top = random.randint(0, h-1)
