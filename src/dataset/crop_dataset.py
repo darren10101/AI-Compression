@@ -23,7 +23,7 @@ class CropDataStream(IterableDataset):
     left = random.randint(0, w-1)
     crop = F.crop(img_tensor, top, left, min(self.crop_size, h - top), min(self.crop_size, w - left))
     if h < self.crop_size + top or w < self.crop_size + left:
-      crop = F.pad(crop, (0, 0, max(self.crop_size + top - h, 0), max(self.crop_size + left - w), 0))
+      crop = F.pad(crop, (0, 0, max(self.crop_size + left - w, 0), max(self.crop_size + top - h, 0)))
     return crop
   def __iter__(self):
     for sample in self.hf_stream:
