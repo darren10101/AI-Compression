@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as TF
 from torch.utils.data import IterableDataset, DataLoader
 from datasets import load_dataset
 from torchvision.transforms import functional as F
@@ -23,7 +24,10 @@ class CropDataStream(IterableDataset):
     left = random.randint(0, w-1)
     crop = F.crop(img_tensor, top, left, min(self.crop_size, h - top), min(self.crop_size, w - left))
     if h < self.crop_size + top or w < self.crop_size + left:
-      crop = F.pad(crop, (0, 0, max(self.crop_size + left - w, 0), max(self.crop_size + top - h, 0)))
+      # torch.nn.functional.pad format for 3D tensor (C,H,W): (left, right, top, bottom)
+      pad_right = max(self.crop_size + left - w, 0)
+      pad_bottom = max(self.crop_size + top - h, 0)
+      crop = TF.pad(crop, (0, pad_right, 0, pad_bottom))
     return crop
   def __iter__(self):
     for sample in self.hf_stream:
