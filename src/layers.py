@@ -35,7 +35,7 @@ class IntegerAdditiveCoupling(nn.Module):
     The rounding with STE allows gradient flow during training while
     maintaining perfect invertibility for lossless compression.
     """
-    def __init__(self, in_channels, hidden_channels=64):
+    def __init__(self, in_channels, hidden_channels=256):
         super().__init__()
         self.split_idx = in_channels // 2
         
@@ -122,7 +122,7 @@ class FlowStep(nn.Module):
     """
     Single flow step combining ActNorm, Permutation, and Coupling.
     """
-    def __init__(self, in_channels, hidden_channels=64):
+    def __init__(self, in_channels, hidden_channels=256):
         super().__init__()
         self.actnorm = ActNorm(in_channels)
         self.permute = Permute(in_channels)
@@ -144,7 +144,7 @@ class FlowBlock(nn.Module):
     """
     A block of flow steps followed by optional split for hierarchical factorization.
     """
-    def __init__(self, in_channels, hidden_channels=64, num_steps=4, split=True):
+    def __init__(self, in_channels, hidden_channels=256, num_steps=4, split=True):
         super().__init__()
         self.split = split
         

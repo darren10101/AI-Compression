@@ -83,7 +83,7 @@ class IntegerDiscreteFlow(nn.Module):
     def __init__(
         self,
         in_channels=3,
-        hidden_channels=64,
+        hidden_channels=256,
         num_levels=3,
         num_steps=8,
     ):
@@ -322,7 +322,7 @@ def create_idf_model(config=None):
     
     return IntegerDiscreteFlow(
         in_channels=config.get('in_channels', 3),
-        hidden_channels=config.get('hidden_channels', 64),
+        hidden_channels=config.get('hidden_channels', 256),
         num_levels=config.get('num_levels', 3),
         num_steps=config.get('num_steps', 8),
     )
