@@ -6,7 +6,7 @@ from torchvision.transforms import functional as F
 import random
 
 class CropDataStream(IterableDataset):
-  def __init__(self, split, crop_size=64, dataset_name="ILSVRC/imagenet-1k", image_key='image', buffer_size=1000):
+  def __init__(self, split, crop_size=256, dataset_name="ILSVRC/imagenet-1k", image_key='image', buffer_size=1000):
     self.dataset_name = dataset_name
     self.split = split
     self.crop_size = crop_size
