@@ -3,12 +3,6 @@ Standalone script to evaluate PixelCNN compression performance against tradition
 
 Usage:
     python evaluate_compression.py --checkpoint checkpoints/pixelcnn_best.pt --num_samples 500
-
-This script:
-1. Loads a trained PixelCNN model
-2. Compresses validation images using PixelCNN + ANS encoding
-3. Compares with PNG, JPEG, and WebP codecs
-4. Generates detailed comparison reports and visualizations
 """
 
 import argparse
@@ -42,9 +36,7 @@ except ImportError:
     print("Warning: matplotlib not installed. Plots will be skipped.")
 
 
-# =============================================================================
-# Model Definition (must match training)
-# =============================================================================
+# Model Definition
 
 class MaskedConv2d(nn.Conv2d):
     """Masked Convolution for autoregressive models."""
@@ -243,10 +235,7 @@ class TraditionalCodec:
         return np.array(img)
 
 
-# =============================================================================
 # Evaluation Functions
-# =============================================================================
-
 def compute_metrics(original, reconstructed):
     """Compute image quality metrics."""
     original = original.astype(np.float64)
@@ -298,7 +287,6 @@ def evaluate_compression(model, data_loader, device, num_samples=500, use_actual
             
             img_np = img_tensor.permute(1, 2, 0).numpy()
             
-            # PixelCNN - theoretical (from loss)
             try:
                 theoretical_bpp = compressor.estimate_bpp(img_tensor)
                 results['pixelcnn_theoretical']['bpp'].append(theoretical_bpp)
@@ -307,7 +295,6 @@ def evaluate_compression(model, data_loader, device, num_samples=500, use_actual
                 results['pixelcnn_theoretical']['bpp'].append(float('nan'))
                 results['pixelcnn_theoretical']['psnr'].append(float('nan'))
             
-            # PixelCNN - actual compression
             if use_actual_compression and CONSTRICTION_AVAILABLE:
                 try:
                     compressed_pixelcnn, shape = compressor.compress(img_tensor)
@@ -318,13 +305,11 @@ def evaluate_compression(model, data_loader, device, num_samples=500, use_actual
                     results['pixelcnn']['bpp'].append(float('nan'))
                     results['pixelcnn']['psnr'].append(float('nan'))
             
-            # PNG
             compressed_png = codec.compress_png(img_np)
             png_bpp = compute_bpp(len(compressed_png), img_tensor.shape)
             results['png']['bpp'].append(png_bpp)
             results['png']['psnr'].append(float('inf'))
             
-            # JPEG at different quality levels
             for quality, key in [(95, 'jpeg_95'), (75, 'jpeg_75'), (50, 'jpeg_50')]:
                 compressed = codec.compress_jpeg(img_np, quality=quality)
                 bpp = compute_bpp(len(compressed), img_tensor.shape)
@@ -333,13 +318,11 @@ def evaluate_compression(model, data_loader, device, num_samples=500, use_actual
                 results[key]['bpp'].append(bpp)
                 results[key]['psnr'].append(metrics['psnr'])
             
-            # WebP lossless
             compressed_webp = codec.compress_webp(img_np, lossless=True)
             webp_bpp = compute_bpp(len(compressed_webp), img_tensor.shape)
             results['webp_lossless']['bpp'].append(webp_bpp)
             results['webp_lossless']['psnr'].append(float('inf'))
             
-            # WebP lossy
             compressed_webp_lossy = codec.compress_webp(img_np, quality=95, lossless=False)
             webp_lossy_bpp = compute_bpp(len(compressed_webp_lossy), img_tensor.shape)
             decoded_webp = codec.decompress_webp(compressed_webp_lossy)
@@ -379,7 +362,6 @@ def print_results(summary):
     print(f"{'Codec':<25} {'Avg BPP':<12} {'Std BPP':<12} {'Min BPP':<12} {'PSNR (dB)':<12}")
     print("-" * 85)
     
-    # Sort by average BPP (lossless first, then lossy)
     lossless = {k: v for k, v in summary.items() if v.get('avg_psnr') == 'lossless'}
     lossy = {k: v for k, v in summary.items() if v.get('avg_psnr') != 'lossless'}
     
@@ -403,7 +385,6 @@ def plot_results(results, summary, output_dir):
         print("Skipping plots (matplotlib not available)")
         return
     
-    # BPP comparison bar chart
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     
     codecs = [k for k in summary.keys() if summary[k]['num_samples'] > 0]
@@ -434,7 +415,6 @@ def plot_results(results, summary, output_dir):
     plt.savefig(os.path.join(output_dir, 'compression_comparison.png'), dpi=150, bbox_inches='tight')
     plt.close()
     
-    # Rate-distortion plot (for lossy codecs)
     fig, ax = plt.subplots(figsize=(10, 6))
     
     lossy_codecs = [k for k in codecs if summary[k].get('avg_psnr') != 'lossless']
@@ -443,7 +423,6 @@ def plot_results(results, summary, output_dir):
         ax.scatter(summary[codec]['avg_bpp'], summary[codec]['avg_psnr'], 
                    s=100, label=codec, alpha=0.8)
     
-    # Add lossless codecs as vertical lines
     lossless_codecs = [k for k in codecs if summary[k].get('avg_psnr') == 'lossless']
     for i, codec in enumerate(lossless_codecs):
         ax.axvline(x=summary[codec]['avg_bpp'], linestyle='--', alpha=0.5,
@@ -478,13 +457,11 @@ def main():
                         help='Skip actual ANS compression (use theoretical BPP only)')
     args = parser.parse_args()
     
-    # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
     
     print(f"Device: {args.device}")
     print(f"Checkpoint: {args.checkpoint}")
     
-    # Load dataset
     print("\nLoading CIFAR-10 dataset...")
     
     class CIFAR10Compression(torch.utils.data.Dataset):
@@ -503,7 +480,6 @@ def main():
     
     full_train_dataset = CIFAR10Compression(train=True, download=True)
     
-    # Create validation split
     train_size = int(0.9 * len(full_train_dataset))
     val_size = len(full_train_dataset) - train_size
     _, val_dataset = random_split(
@@ -515,7 +491,6 @@ def main():
     
     print(f"Validation samples: {len(val_dataset)}")
     
-    # Load model
     print("\nLoading model...")
     model = PixelCNN(in_channels=3, hidden_channels=128, num_residual_blocks=12).to(args.device)
     
@@ -528,26 +503,21 @@ def main():
         print(f"Warning: Checkpoint not found at {args.checkpoint}")
         print("Using randomly initialized model (results will be poor)")
     
-    # Evaluate
     results, summary = evaluate_compression(
         model, val_loader, args.device,
         num_samples=args.num_samples,
         use_actual_compression=not args.skip_actual_compression
     )
     
-    # Print results
     print_results(summary)
     
-    # Plot results
     plot_results(results, summary, args.output_dir)
     
-    # Save results to JSON
     output_file = os.path.join(args.output_dir, 'evaluation_results.json')
     with open(output_file, 'w') as f:
         json.dump(summary, f, indent=2)
     print(f"\nResults saved to {output_file}")
     
-    # Print key comparisons
     print("\n" + "=" * 60)
     print("KEY COMPARISONS")
     print("=" * 60)
