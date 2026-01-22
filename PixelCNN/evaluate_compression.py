@@ -137,9 +137,7 @@ class PixelCNN(nn.Module):
         return bits_per_subpixel
 
 
-# =============================================================================
 # Compression Classes
-# =============================================================================
 
 class PixelCNNCompressor:
     """Compress images using PixelCNN + ANS encoding (using constriction library)."""
@@ -163,11 +161,9 @@ class PixelCNNCompressor:
         logits = self.model(input_img)
         probs = F.softmax(logits, dim=2).squeeze(0)
         
-        # Shape: (C, 256, H, W) -> (C*H*W, 256)
         probs = probs.permute(0, 2, 3, 1).contiguous().view(-1, 256)
         symbols = image.view(-1).to(torch.int32).cpu().numpy()
         
-        # Normalize probabilities and convert to numpy
         probs = probs.clamp(min=1e-9)
         probs = probs / probs.sum(dim=-1, keepdim=True)
         probs_np = probs.cpu().numpy().astype(np.float32)
