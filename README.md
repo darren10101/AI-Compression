@@ -1,4 +1,5 @@
 # Deep Lossless Compression: PixelCNN + ANS
+<img width="1389" height="490" alt="image" src="https://github.com/user-attachments/assets/c57a1cb3-7e7d-476f-8d4a-44fb7e8fa2af" />
 
 This project implements a lossless image compression system combining deep autoregressive modeling with modern entropy coding. By learning the probability distribution of images using **PixelCNN** and encoding them via **Asymmetric Numeral Systems (ANS)**, this model achieves high-efficiency compression on the CIFAR-10 domain.
 
